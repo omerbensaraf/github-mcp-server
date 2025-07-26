@@ -18,6 +18,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+// GetCommit creates a tool that retrieves detailed information about a specific commit from a GitHub repository.
+// It returns both the tool definition and the handler function for the MCP server.
 func GetCommit(getClient GetClientFn, t translations.TranslationHelperFunc) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("get_commit",
 			mcp.WithDescription(t("TOOL_GET_COMMITS_DESCRIPTION", "Get details for a commit from a GitHub repository")),
@@ -84,7 +86,7 @@ func GetCommit(getClient GetClientFn, t translations.TranslationHelperFunc) (too
 				return mcp.NewToolResultError(fmt.Sprintf("failed to get commit: %s", string(body))), nil
 			}
 
-			r, err := json.Marshal(commit)
+			r, err := MarshalJSONWithPool(commit)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal response: %w", err)
 			}
@@ -93,7 +95,9 @@ func GetCommit(getClient GetClientFn, t translations.TranslationHelperFunc) (too
 		}
 }
 
-// ListCommits creates a tool to get commits of a branch in a repository.
+// ListCommits creates a tool that retrieves a list of commits from a GitHub repository branch.
+// Returns at least 30 results per page by default, but can return more if specified using the
+// perPage parameter (up to 100). It returns both the tool definition and the handler function for the MCP server.
 func ListCommits(getClient GetClientFn, t translations.TranslationHelperFunc) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("list_commits",
 			mcp.WithDescription(t("TOOL_LIST_COMMITS_DESCRIPTION", "Get list of commits of a branch in a GitHub repository. Returns at least 30 results per page by default, but can return more if specified using the perPage parameter (up to 100).")),
@@ -183,7 +187,8 @@ func ListCommits(getClient GetClientFn, t translations.TranslationHelperFunc) (t
 		}
 }
 
-// ListBranches creates a tool to list branches in a GitHub repository.
+// ListBranches creates a tool that retrieves all branches from a GitHub repository.
+// It returns both the tool definition and the handler function for the MCP server.
 func ListBranches(getClient GetClientFn, t translations.TranslationHelperFunc) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("list_branches",
 			mcp.WithDescription(t("TOOL_LIST_BRANCHES_DESCRIPTION", "List branches in a GitHub repository")),
@@ -445,7 +450,9 @@ func CreateRepository(getClient GetClientFn, t translations.TranslationHelperFun
 		}
 }
 
-// GetFileContents creates a tool to get the contents of a file or directory from a GitHub repository.
+// GetFileContents creates a tool that retrieves the contents of files or directories from a GitHub repository.
+// It supports both text and binary files, and can list directory contents.
+// It returns both the tool definition and the handler function for the MCP server.
 func GetFileContents(getClient GetClientFn, getRawClient raw.GetRawClientFn, t translations.TranslationHelperFunc) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("get_file_contents",
 			mcp.WithDescription(t("TOOL_GET_FILE_CONTENTS_DESCRIPTION", "Get the contents of a file or directory from a GitHub repository")),

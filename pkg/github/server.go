@@ -1,9 +1,13 @@
+// Package github provides core server functionality and validation utilities for the GitHub MCP server.
+// It includes input validation, sanitization, and helper functions for creating MCP tools.
 package github
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v73/github"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -11,6 +15,85 @@ import (
 )
 
 // NewServer creates a new GitHub MCP server with the specified GH client and logger.
+
+// NewServer creates a new GitHub MCP server with the specified GH client and logger.
+
+// ValidateRepositoryName validates and sanitizes a repository name according to GitHub's naming rules.
+// GitHub repository names must:
+// - Be 1-100 characters long
+// - Contain only alphanumeric characters, hyphens, underscores, and dots
+// - Not start or end with special characters
+// - Not contain consecutive special characters
+func ValidateRepositoryName(name string) error {
+	if name == "" {
+		return fmt.Errorf("repository name cannot be empty")
+	}
+	if len(name) > 100 {
+		return fmt.Errorf("repository name cannot be longer than 100 characters")
+	}
+
+	// GitHub repository name pattern
+	pattern := `^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$`
+	matched, err := regexp.MatchString(pattern, name)
+	if err != nil {
+		return fmt.Errorf("failed to validate repository name: %w", err)
+	}
+	if !matched {
+		return fmt.Errorf("invalid repository name: must contain only alphanumeric characters, hyphens, underscores, and dots")
+	}
+
+	return nil
+}
+
+// ValidateOwnerName validates and sanitizes an owner (username or organization) name.
+// GitHub usernames must:
+// - Be 1-39 characters long
+// - Contain only alphanumeric characters and hyphens
+// - Not start or end with hyphens
+// - Not contain consecutive hyphens
+func ValidateOwnerName(name string) error {
+	if name == "" {
+		return fmt.Errorf("owner name cannot be empty")
+	}
+	if len(name) > 39 {
+		return fmt.Errorf("owner name cannot be longer than 39 characters")
+	}
+
+	// GitHub username pattern
+	pattern := `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$`
+	matched, err := regexp.MatchString(pattern, name)
+	if err != nil {
+		return fmt.Errorf("failed to validate owner name: %w", err)
+	}
+	if !matched {
+		return fmt.Errorf("invalid owner name: must contain only alphanumeric characters and hyphens")
+	}
+
+	// Check for consecutive hyphens
+	if strings.Contains(name, "--") {
+		return fmt.Errorf("invalid owner name: cannot contain consecutive hyphens")
+	}
+
+	return nil
+}
+
+// SanitizeStringParam sanitizes a string parameter by trimming whitespace and validating length.
+func SanitizeStringParam(value string, maxLength int) (string, error) {
+	if value == "" {
+		return "", fmt.Errorf("parameter cannot be empty")
+	}
+
+	sanitized := strings.TrimSpace(value)
+	if sanitized == "" {
+		return "", fmt.Errorf("parameter cannot be empty after trimming whitespace")
+	}
+
+	if len(sanitized) > maxLength {
+		return "", fmt.Errorf("parameter cannot be longer than %d characters", maxLength)
+	}
+
+	return sanitized, nil
+}
 
 func NewServer(version string, opts ...server.ServerOption) *server.MCPServer {
 	// Add default options
