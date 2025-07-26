@@ -1,4 +1,3 @@
-version: "2"
 run:
   concurrency: 4
   tests: true
@@ -11,27 +10,32 @@ linters:
     - misspell
     - nakedret
     - revive
-  exclusions:
-    generated: lax
-    presets:
-      - comments
-      - common-false-positives
-      - legacy
-      - std-error-handling
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
-  settings:
-    staticcheck:
-      checks:
-        - "all"
-        - -QF1008
-        - -ST1000
-formatters:
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+    - errcheck
+    - gocognit
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+linters-settings:
+  staticcheck:
+    checks:
+      - "all"
+      - -QF1008
+      - -ST1000
+  gocyclo:
+    min-complexity: 15
+  gocognit:
+    min-complexity: 20
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  misspell:
+    locale: US

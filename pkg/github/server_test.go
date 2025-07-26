@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-github/v73/github"
 	"github.com/shurcooL/githubv4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func stubGetClientFn(client *github.Client) GetClientFn {
@@ -555,6 +556,195 @@ func TestOptionalPaginationParams(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestValidateRepositoryName(t *testing.T) {
+	tests := []struct {
+		name        string
+		repoName    string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid repository name",
+			repoName:    "my-repo",
+			expectError: false,
+		},
+		{
+			name:        "valid repository name with dots",
+			repoName:    "my.repo",
+			expectError: false,
+		},
+		{
+			name:        "valid repository name with underscores",
+			repoName:    "my_repo",
+			expectError: false,
+		},
+		{
+			name:        "empty repository name",
+			repoName:    "",
+			expectError: true,
+			errorMsg:    "repository name cannot be empty",
+		},
+		{
+			name:        "repository name too long",
+			repoName:    "a" + string(make([]byte, 101)),
+			expectError: true,
+			errorMsg:    "repository name cannot be longer than 100 characters",
+		},
+		{
+			name:        "repository name starting with hyphen",
+			repoName:    "-invalid",
+			expectError: true,
+			errorMsg:    "invalid repository name",
+		},
+		{
+			name:        "repository name ending with hyphen",
+			repoName:    "invalid-",
+			expectError: true,
+			errorMsg:    "invalid repository name",
+		},
+		{
+			name:        "repository name with spaces",
+			repoName:    "my repo",
+			expectError: true,
+			errorMsg:    "invalid repository name",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateRepositoryName(tc.repoName)
+			if tc.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errorMsg)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateOwnerName(t *testing.T) {
+	tests := []struct {
+		name        string
+		ownerName   string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid owner name",
+			ownerName:   "octocat",
+			expectError: false,
+		},
+		{
+			name:        "valid owner name with hyphens",
+			ownerName:   "octo-cat",
+			expectError: false,
+		},
+		{
+			name:        "empty owner name",
+			ownerName:   "",
+			expectError: true,
+			errorMsg:    "owner name cannot be empty",
+		},
+		{
+			name:        "owner name too long",
+			ownerName:   "a" + string(make([]byte, 40)),
+			expectError: true,
+			errorMsg:    "owner name cannot be longer than 39 characters",
+		},
+		{
+			name:        "owner name with consecutive hyphens",
+			ownerName:   "octo--cat",
+			expectError: true,
+			errorMsg:    "cannot contain consecutive hyphens",
+		},
+		{
+			name:        "owner name starting with hyphen",
+			ownerName:   "-octocat",
+			expectError: true,
+			errorMsg:    "invalid owner name",
+		},
+		{
+			name:        "owner name ending with hyphen",
+			ownerName:   "octocat-",
+			expectError: true,
+			errorMsg:    "invalid owner name",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateOwnerName(tc.ownerName)
+			if tc.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errorMsg)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestSanitizeStringParam(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		maxLength   int
+		expected    string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid string",
+			input:       "hello",
+			maxLength:   10,
+			expected:    "hello",
+			expectError: false,
+		},
+		{
+			name:        "string with whitespace",
+			input:       "  hello  ",
+			maxLength:   10,
+			expected:    "hello",
+			expectError: false,
+		},
+		{
+			name:        "empty string",
+			input:       "",
+			maxLength:   10,
+			expectError: true,
+			errorMsg:    "parameter cannot be empty",
+		},
+		{
+			name:        "only whitespace",
+			input:       "   ",
+			maxLength:   10,
+			expectError: true,
+			errorMsg:    "parameter cannot be empty after trimming whitespace",
+		},
+		{
+			name:        "string too long",
+			input:       "hello world",
+			maxLength:   5,
+			expectError: true,
+			errorMsg:    "parameter cannot be longer than 5 characters",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := SanitizeStringParam(tc.input, tc.maxLength)
+			if tc.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errorMsg)
+			} else {
+				require.NoError(t, err)
 				assert.Equal(t, tc.expected, result)
 			}
 		})
